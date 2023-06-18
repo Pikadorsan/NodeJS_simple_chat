@@ -1,2 +1,2 @@
-# NodeJS_simple_chat
+# NodeJS simple chat
 Node.js simple chat
