@@ -27,41 +27,51 @@ io.on('connection', (socket) => {
 
   connections.push(socket);
 
-// Obsługa wiadomości od klienta
-socket.on('message', (message) => {
-  console.log('Message:', message);
+  // Obsługa wiadomości od klienta
+  socket.on('message', (message) => {
+    console.log('Message:', message);
 
-  if (message.startsWith('/pw ')) {
-    const messageParts = message.split(' ');
-    const recipient = messageParts[1];
-    const privateMessage = messageParts.slice(2).join(' ');
+    if (message.startsWith('/pw ')) {
+      const messageParts = message.split(' ');
+      const recipient = messageParts[1];
+      const privateMessage = messageParts.slice(2).join(' ');
 
-    const recipientSocket = connections.find(
-      (clientSocket) => clientSocket.username === recipient
-    );
+      const recipientSocket = connections.find(
+        (clientSocket) => clientSocket.username === recipient
+      );
 
-    if (recipientSocket) {
-      recipientSocket.emit('message', {
-        username: `Private message from ${socket.username}`,
-        message: privateMessage
-      });
-    } else {
-      socket.emit('message', {
-        username: 'Server',
-        message: `User ${recipient} not found`
-      });
-    }
-  } else {
-    connections.forEach((clientSocket) => {
-      if (clientSocket !== socket) {
-        clientSocket.emit('message', {
-          username: socket.username,
-          message: message
+      if (recipientSocket) {
+        socket.emit('message', {
+          username: `Private message to ${recipient}`,
+          message: privateMessage,
+          sent: true
+        });
+        recipientSocket.emit('message', {
+          username: `Private message from ${socket.username}`,
+          message: privateMessage,
+          sent: false
+        });
+      } else {
+        socket.emit('message', {
+          username: 'Server',
+          message: `User ${recipient} not found`,
+          sent: true
         });
       }
-    });
-  }
-});
+    } else {
+      const newMessage = {
+        username: socket.username,
+        message: message,
+        sent: true
+      };
+
+      socket.emit('message', newMessage);
+      socket.broadcast.emit('message', {
+        ...newMessage,
+        sent: false
+      });
+    }
+  });
 
   socket.on('disconnect', () => {
     console.log('Disconnected:', socket.id);
